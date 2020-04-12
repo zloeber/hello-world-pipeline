@@ -200,6 +200,24 @@ git flow release finish 'v0.1.0'
 
 When this is completed the release/v0.1.0 branch will have been merged into master and a new tag been generated. This will kick off the production deployment pipeline for this release.
 
+## Initializing A New Project
+
+If you wish to clone this into your own project for testing purposes follow these directions to get started after cloning this repo. All git commands are assumed to be using ssh key based authentication. Before moving forward you will need to update the config/* files to be correct for your github account and create the dockerhub target container registry. 
+
+This will get the github repo started when you are ready:
+
+```bash
+rm -rf ./.git
+make github/bootstrap
+```
+
+Then manually add in `DOCKER_USERNAME` and `DOCKER_PASSWORD` into the created github repo secrets and configure git flow branches.
+
+```bash
+make .dep/gitflow
+git flow init
+```
+
 ## Extras
 
 Here are quite a few additional tasks in the Makefiles that are broken out by category in the scripts directory. Running `make` at the root directory will show all non-hidden tasks (those not prefixed by a `.`). Many of these are one off tasks I needed to do at some point and just dropped into a Makefile for future use. These may or may not be valuable to the right devops engineer as items to cut apart for their own custom pipelines so I just left them in.
