@@ -35,7 +35,7 @@ The pipeline process for this example has taken some shortcuts for the following
 4. The base images for the multi-stage build are sourced from external locations and would also need to be internal images in an enterprise environment.
 5. There are no target kubernetes clusters to deploy into as this is an example pipeline only. As such, we include additional pipeline tasks to stand up a kind (Kubernetes in docker) cluster and deploy to it right afterwards.
 
-The pipeline is being performed via Github Actions workflows. The table for how/when these workflows are triggered can be found further down in this document in the [Gitflow section](#gitflow-ish).
+The pipeline is being performed via Github Actions workflows. The table for how/when these workflows are triggered can be found further down in this document in the [Gitflow section](#Gitflow).
 
 If you wish to run things locally, every step of the pipeline can be done using the local Makefile tasks instead.
 
@@ -79,7 +79,7 @@ The deployment will also be triggered for a new tag release. This will
 - Apply the rendered chart override for prod to the new cluster
 
 
-## Branch Model - Gitflow
+## Gitflow
 
 Gitflow wasn't necessarily designed for multiple release environments. So adaptations need to be made to accommodate the requirement for using it as the Git branching strategy in this example. 
 
