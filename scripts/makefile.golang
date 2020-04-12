@@ -1,0 +1,104 @@
+SRCS := $(shell find $(ROOT_PATH) -name '*.go')
+GO_VERSION := $(shell cat ./.tool-versions | grep golang | cut -f 2 -d " ")
+
+BUILD_PATH := $(ROOT_PATH)/dist/${PROJECT_APP}
+#LDFLAGS := -X $(GIT_SITE)/pkg/version.AppName=${PROJECT_APP} \
+#		   -X $(GIT_SITE)/pkg/version.GitCommit=${GIT_COMMIT}${GIT_DIRTY} \
+#		   -X $(GIT_SITE)/pkg/version.BuildDate=${BUILD_DATE} \
+#		   -X $(GIT_SITE)/pkg/version.Version=${VERSION}
+LINTERS := \
+	github.com/kisielk/errcheck \
+	honnef.co/go/tools/cmd/staticcheck \
+	golang.org/x/lint/golint
+
+HELPERPROJECT_APPS := \
+	github.com/mdempsky/gocode \
+	github.com/uudashr/gopkgs/v2/cmd/gopkgs \
+	github.com/ramya-rao-a/go-outline \
+	github.com/stamblerre/gocode \
+	github.com/rogpeppe/godef \
+	golang.org/x/tools/cmd/goimports
+
+DOCKER_BUILD_ARGS := --build-arg VERSION=$(VERSION) \
+	--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+	--build-arg GO_VERSION=$(GO_VERSION)
+#	--build-arg LDFLAGS="$(LDFLAGS)"
+
+.PHONY: .go/build
+.go/build: .go/deps ## Compile the project binaries with Go
+	go build -v \
+		-o $(BUILD_PATH)
+
+.PHONY: .go/deps
+.go/deps: ## Go dependencies
+	go get -d -v ./...
+
+.PHONY: .go/helpers
+.go/helpers: ## Install helper apps
+	go get -v -u $(HELPERPROJECT_APPS)
+
+.PHONY: .go/deps/update
+.go/deps/update: ## Update dependencies
+	go get -d -v -u -f ./...
+
+.PHONY: .go/mod/tidy
+.go/mod/tidy: ## Update module dependencies
+	go mod tidy
+
+.PHONY: .go/test/deps
+.go/test/deps: ## Install test deps
+	go get -d -v -t ./...
+	go get -v -u $(LINTERS)
+
+.PHONY: .go/install
+.go/install: ## Install
+	go install ./...
+
+.PHONY: .go/lint
+.go/lint: ## Code linting
+	@for file in $(SRCS); do \
+		echo "Linting File: $${file}"; \
+		golint $${file}; \
+		if [ -n "$$(golint $${file})" ]; then \
+			exit 1; \
+		fi; \
+	done
+
+.PHONY: .go/vet
+.go/vet: .go/test/deps ## Code vetting
+	go vet ./...
+
+.PHONY: .go/errcheck
+.go/errcheck: .go/test/deps ## Error checking
+	errcheck ./...
+
+.PHONY: .go/staticcheck
+.go/staticcheck: .go/test/deps ## Static testing
+	staticcheck ./...
+
+.PHONY: .go/version
+.go/version: ## Go version
+	@go version
+
+.PHONY: .go/test
+.go/test: .go/test/deps ## Run tests
+	go test -race ./...
+
+.PHONY: .go/clean
+.go/clean: ## Clean the directory tree.
+	go clean -i ./... 
+	go clean --modcache
+	@test ! -e bin/${PROJECT_APP} || rm bin/${PROJECT_APP}
+
+.PHONY: lint
+lint: .go/lint .go/vet .go/errcheck .go/staticcheck ## Lint, vet, errcheck, and staticcheck the code
+
+.PHONY: test
+test: .go/test ## Run unit tests
+
+.PHONY: build
+build: .go/build ## Build the binaries
+
+.PHONY: run
+run: ## Run the built app
+	$(BUILD_PATH)

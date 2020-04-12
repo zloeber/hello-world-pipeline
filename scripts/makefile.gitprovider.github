@@ -1,0 +1,22 @@
+ROOT_PATH ?= $(abspath $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST))))))
+BIN_PATH ?= $(ROOT_PATH)/.local/bin
+
+gh := $(BIN_PATH)/gh
+GIT_SITE := github.com
+
+github/deps: ## Install github cli tool
+	@[ -n "/tmp" ] && [ -n "gh" ] && rm -rf "/tmp/gh"
+	@mkdir -p /tmp/gh $(BIN_PATH)
+	@curl --retry 3 --retry-delay 5 --fail -sSL -o - https://github.com/cli/cli/releases/download/v0.6.4/gh_0.6.4_linux_amd64.tar.gz | tar -zx -C '/tmp/gh'
+	@find /tmp/gh -type f -name 'gh*' | xargs -I {} cp -f {} $(gh)
+	@chmod +x $(gh)
+	@[ -n "/tmp" ] && [ -n "gh" ] && rm -rf "/tmp/gh"
+	@echo "Installed: $(gh)"
+
+github/bootstrap: github/deps ## Create github repo if it doesn't exist
+	git init || true
+	git add --all .
+	git commit -m 'initial commit'
+	$(gh) repo create \
+        --repo $(GIT_REPO) \
+        --description "$(GIT_DESCRIPTION)"

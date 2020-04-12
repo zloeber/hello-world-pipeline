@@ -1,0 +1,23 @@
+# https://github.com/marketplace/actions/gitflow-action
+# Auto-merge master into develop and release into master via PRs.
+name: Gitflow
+on: 
+  push:
+  pull_request_review:
+  check_run:
+    types: [completed]
+    
+jobs:
+  build:
+    name: Gitflow Auto-merge
+    runs-on: ubuntu-latest
+    steps:
+    - uses: Logerfo/gitflow-action@0.0.4
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        release: release # The `release` branch.
+        dev: develop # The `dev` branch.
+        master: master # The `master` branch.
+        label: gitflow # The pull request label.
+        auto-merge: true # If `true`, will try to automatically merge pull requests. Can also be set to `pull_request_review`, `check_run`, `push`, or a comma-separated combination of these values to only merge when handling the named events.
+        require-merge: false # If an attempted merge fails, the action is considered to have failed

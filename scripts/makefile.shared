@@ -1,0 +1,13 @@
+.dep/gitflow: ## Installs gitflow extension (sudo required)
+	wget -q  https://raw.githubusercontent.com/petervanderdoes/gitflow-avh/develop/contrib/gitflow-installer.sh && \
+		sudo bash gitflow-installer.sh install stable; \
+		rm gitflow-installer.sh
+
+.PHONY: create/repo
+create/repo: $(GIT_PROVIDER)/bootstrap ## create a new github repo for this project and sync all contents
+
+.PHONY: start/cluster
+start/cluster: cicd/start ## Start local kubernetes cluster
+
+.PHONY: stop/cluster
+stop/cluster: cicd/stop ## Stop local kubernetes cluster

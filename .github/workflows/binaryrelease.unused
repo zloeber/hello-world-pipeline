@@ -1,0 +1,175 @@
+# When a release has been created (new tag on master) we:
+# - Build and auto-deploy a binary to github releases
+# - Build and tag an image into dockerhub with the new release tag
+# - Deploy the released version into a kind cluster via helm
+# - Run a helm test to ensure that it works as intended
+name: GithubRelease
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+
+jobs:
+  binaryrelease:
+    runs-on: ubuntu-latest
+#    if: ${{ github.ref == 'refs/heads/master' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Unshallow
+        run: git fetch --prune --unshallow
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13.9
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v1
+        with:
+          version: latest
+          args: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: Publish - Image
+    runs-on: ubuntu-latest
+ #   if: ${{ github.ref == 'refs/heads/master' }}
+    timeout-minutes: 5
+    needs: binaryrelease
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Vars - Source Variables
+      id: vars
+      run: |
+        echo "Current Branch: ${BRANCH}"
+        if [ "$BRANCH" == "refs/heads/master" ]; then
+          echo "Setting deployment environment to: prod"
+          echo ::set-output name=DEPLOYENV::prod
+          DEPLOYENV=prod
+        else
+          echo "Setting deployment environment to: develop"
+          echo ::set-output name=DEPLOYENV::develop
+          DEPLOYENV=develop
+        fi;
+        echo ::set-output name=$(make .print-DOCKER_BUILD_ARGS ENVIRONMENT=$DEPLOYENV)
+        echo ::set-output name=$(make .print-DOCKER_IMAGE ENVIRONMENT=$DEPLOYENV)
+        echo ::set-output name=$(make .print-GIT_COMMIT ENVIRONMENT=$DEPLOYENV)
+        echo ::set-output name=$(make .print-VERSION ENVIRONMENT=$DEPLOYENV)
+        echo ::set-output name=$(make .print-GIT_DIRTY ENVIRONMENT=$DEPLOYENV)
+      shell: bash
+      env:
+        BRANCH: ${{ github.ref }}
+
+    - name: Publish - Docker Image
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        build_args: ${{ steps.vars.outputs.DOCKER_BUILD_ARGS }}
+        tag_with_ref: false
+        tag_with_sha: false
+        repository: ${{ secrets.DOCKER_IMAGE }}
+        tags: v${{ steps.vars.outputs.VERSION }}
+  
+    - name: Dependencies
+      run: |
+        export DEBIAN_FRONTEND=noninteractive
+        sudo apt update -q
+        sudo apt install -q -y git gcc make
+        make deps
+      shell: bash
+
+    - name: Helm - Render Artifacts
+      run: |
+        make helm/render/overrides .render/envvars ENVIRONMENT=$DEPLOYENV DEPLOY_TAG=$DEPLOY_TAG
+      shell: bash
+      env:
+        DEPLOYENV: ${{ steps.vars.outputs.DEPLOYENV }}
+        DEPLOY_TAG: v${{ steps.vars.outputs.VERSION }}-${{ steps.vars.outputs.GIT_COMMIT }}
+
+    - name: Publish - Helm Chart
+      uses: actions/upload-artifact@v1
+      with:
+        name: helmchart
+        path: deployments/chart
+
+    - name: Publish - Helm Overrides
+      uses: actions/upload-artifact@v1
+      with:
+        name: helmchartvalues
+        path: dist/overrides.yaml
+
+    - name: Publish - Deployment Env Vars
+      uses: actions/upload-artifact@v1
+      with:
+        name: deployvars
+        path: dist/deploy.env
+    
+  deploy:
+    name: DeployToProd
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: publish
+#    if: ${{ github.ref == 'refs/heads/master' }}
+    steps:
+    - name: Download - Helm Chart
+      uses: actions/download-artifact@v1
+      with:
+        name: helmchart
+        path: chart
+
+    - name: Download Helm Values
+      uses: actions/download-artifact@v1
+      with:
+        name: helmchartvalues
+        path: ./
+    
+    - name: Download Deployment Env Vars
+      uses: actions/download-artifact@v1
+      with:
+        name: deployvars
+        path: ./
+
+    - name: Setup helm binary
+      uses: azure/setup-helm@v1
+      with:
+        version: 'v3.1.2'
+
+    - name: Setup kubectl binary
+      uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.18.0'
+
+    - name: Create k8s Kind Cluster
+      uses: helm/kind-action@v1.0.0-rc.1
+      with:
+        node_image: kindest/node:v1.18.0
+      
+    - name: Deploy Helm Chart - Prod
+      run: |
+        cat ./deploy.env
+        set -a
+        . ./deploy.env
+        set +a
+        kubectl create namespace  ${DEPLOY_NAMESPACE}
+        helm upgrade \
+          --install \
+          -n ${DEPLOY_NAMESPACE} \
+          -f overrides.yaml \
+          --atomic \
+          --history-max 10 \
+          ${DEPLOY_NAME} ./chart
+      shell: bash
+
+    - name: Test Helm Chart - Prod
+      run: |
+        set -a
+        . ./deploy.env
+        set +a
+        helm test ${DEPLOY_NAME} -n ${DEPLOY_NAMESPACE}
+      shell: bash

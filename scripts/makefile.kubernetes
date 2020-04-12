@@ -1,0 +1,51 @@
+ROOT_PATH ?= $(abspath $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST))))))
+BIN_PATH ?= $(ROOT_PATH)/.local/bin
+
+KUBE_CLUSTER_CONTEXT ?= $(KUBE_CLUSTER)
+
+kubectl := $(BIN_PATH)/kubectl
+
+.kube/deps: ## install kubectl for this project
+	@mkdir -p $(BIN_PATH)
+	@curl --retry 3 --retry-delay 5 --fail -sSL -o $(kubectl) https://storage.googleapis.com/kubernetes-release/release/v$(KUBE_VERSION)/bin/linux/amd64/kubectl
+	@chmod +x $(kubectl)
+	@echo "Installed: $(kubectl)"
+
+kube/test: ## Validate the kubernetes deployment
+	$(docker) run --pid=host -t -v $${HOME}/.kube/config:/opt/kube-bench/cfg/config.yaml aquasec/kube-bench:latest node
+
+kube/show/utilization: ## Show aks node utilization
+	$(kubectl) get nodes --no-headers | awk '{print $$1}' | xargs -I {} sh -c 'echo {}; $(kubectl) describe node {} | grep Allocated -A 5 | grep -ve Event -ve Allocated -ve percent -ve -- ; echo'
+
+kube/reset/dns: ## Deletes coredns pods to restart dns services on k8s cluster
+	$(kubectl) -n kube-system delete po -l k8s-app=kube-dns
+
+kube/remove/pvc/finalizers/%: ## removes finalizers from a namespace persistent volume claims
+	$(kubectl) get pvc -n $(subst kube/remove/pvc/finalizers/,,$@) | tail -n+2 | awk '{print $$1}' | xargs -I{} $(kubectl) -n $(subst kube/remove/pvc/finalizers/,,$@) patch pvc {} -p '{"metadata":{"finalizers": null}}'
+
+kube/remove/pv/finalizers/%: ## removes finalizers from a namespace persistent volumes
+	$(kubectl) get pv -n $(subst kube/remove/pv/finalizers/,,$@) | tail -n+2 | awk '{print $$1}' | xargs -I{} $(kubectl) patch pv {} -p '{"metadata":{"finalizers": null}}'
+
+kube/context: ## Set kubectl config context to KUBE_CLUSTER
+	$(kubectl) config set-context $(KUBE_CLUSTER_CONTEXT)
+	$(kubectl) config use-context $(KUBE_CLUSTER_CONTEXT)
+
+kube/install/argocd: ## Install argocd
+	$(kubectl) create namespace argocd
+	$(kubectl) apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+kube/get/argocd/password: ## Pull the argocd password
+	$(kubectl) get pods -n argocd -l app.kubernetes.io/name=argocd-server -o name | cut -d'/' -f 2
+
+kube/install/metallb: ## Install metallb
+	$(kubectl) apply -f https://raw.githubusercontent.com/google/metallb/v0.8.3/manifests/metallb.yaml
+	$(kubectl) apply -f https://git.io/km-config.yaml
+
+kube/create/dockersecret: ## Create docker secret from current .docker/config.json
+	$(kubectl) create secret generic regcred \
+	--from-file=.dockerconfigjson="$${HOME}/.docker/config.json" \
+	--type=kubernetes.io/dockerconfigjson -n kube-system
+
+kube/proxy/dashboard: ## Starts a proxy to the local cluster dashboard if it exists
+	PODNAME=$$($(kubectl) get pods -n kube-system -l "app=kubernetes-dashboard,release=kubernetes-dashboard" -o jsonpath="{.items[0].metadata.name}"); \
+	$(kubectl) -n kube-system port-forward $${PODNAME} 9090:9090

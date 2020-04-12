@@ -1,0 +1,13 @@
+act := $(BIN_PATH)/act
+
+.pipeline/deps: ## Install pipeline tool
+	@[ -n "/tmp" ] && [ -n "act" ] && rm -rf "/tmp/act"
+	@mkdir -p /tmp/act $(BIN_PATH)
+	@curl --retry 3 --retry-delay 5 --fail -sSL -o - https://github.com/nektos/act/releases/download/v0.2.7/act_Linux_x86_64.tar.gz | tar -zx -C '/tmp/act'
+	@find /tmp/act -type f -name 'act*' | xargs -I {} cp -f {} $(act)
+	@chmod +x $(act)
+	@[ -n "/tmp" ] && [ -n "act" ] && rm -rf "/tmp/act"
+	@echo "Installed: $(act)"
+
+pipeline: .pipeline/deps ## Run the pipeline locally
+	$(act)

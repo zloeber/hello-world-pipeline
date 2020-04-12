@@ -1,0 +1,75 @@
+ROOT_PATH ?= $(abspath $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST))))))
+BIN_PATH ?= $(ROOT_PATH)/.local/bin
+DIST_PATH ?= $(ROOT_PATH)/dist
+
+helm := $(BIN_PATH)/helm
+gomplate := $(BIN_PATH)/gomplate
+
+.dep/gomplate: ## Install gomplate locally
+	@mkdir -p $(BIN_PATH)
+	@curl --retry 3 --retry-delay 5 --fail -sSL -o $(gomplate) https://github.com/hairyhenderson/gomplate/releases/download/v3.6.0/gomplate_linux-amd64-slim
+	@chmod +x $(gomplate)
+	@echo "Installed: $(gomplate)"
+
+.dep/helm3: ## Install helm3 locally
+	@mkdir -p /tmp/helm3
+	@curl --retry 3 --retry-delay 5 --fail -sSL -o - https://get.helm.sh/helm-v3.1.2-linux-amd64.tar.gz | tar -C /tmp/helm3 -zx linux-amd64/helm
+	@mv /tmp/helm3/linux-amd64/helm $(helm)
+	@rm -rf /tmp/helm3
+	@chmod +x $(helm)
+	@echo "Installed: $(helm)"
+
+.deployment/deps: .dep/gomplate .dep/helm3 ## Install dependencies for deployment tooling
+
+helm/render/overrides: ## Render a deployment manifest for this version
+	@mkdir -p $(DIST_PATH)
+	@rm -rf $(DIST_PATH)/overrides.yaml
+	@export GIT_COMMIT PROJECT_VENDOR DOCKER_IMAGE_NAME PROJECT_APP_PORT; \
+	 	export DEPLOY_TAG=$(DEPLOY_TAG); \
+		$(gomplate) -V \
+			-f $(ROOT_PATH)/deployments/overrides.yaml \
+			-o $(DIST_PATH)/overrides.yaml
+	@echo "Helm deployment override produced: $(DIST_PATH)/overrides.yaml"
+
+helm/lint: ## Lint the helm chart
+	$(helm) lint $(ROOT_PATH)/deployments/chart
+
+helm/deploy: helm/render/overrides ## Deploy rendered helm chart
+	$(kubectl) create namespace $(DEPLOY_NAMESPACE) || true
+	$(helm) upgrade \
+		--install \
+		-n $(DEPLOY_NAMESPACE) \
+		-f $(DIST_PATH)/overrides.yaml \
+		--atomic \
+		--history-max 10 \
+		$(DEPLOY_NAME) $(ROOT_PATH)/deployments/chart
+
+helm/chart/only: ## Deploy rendered helm chart
+	$(kubectl) create namespace $(DEPLOY_NAMESPACE) || true
+	$(helm) upgrade \
+		--install \
+		-n $(DEPLOY_NAMESPACE) \
+		-f $(DIST_PATH)/overrides.yaml \
+		--atomic \
+		--history-max 10 \
+		$(DEPLOY_NAME) $(ROOT_PATH)/deployments/chart
+
+helm/test: ## Tests existing helm deployment
+	$(helm) test $(DEPLOY_NAME) -n $(DEPLOY_NAMESPACE)
+
+helm/list: ## Lists helm deployments
+	$(helm) list --all-namespaces
+
+helm/uninstall: helm/render/overrides ## Remove installed helm chart
+	$(helm) uninstall \
+		-n $(DEPLOY_NAMESPACE) \
+		$(DEPLOY_NAME)
+
+.render/envvars: ## Render the deployment envvars
+	@mkdir -p $(DIST_PATH)
+	@rm -rf $(DIST_PATH)/deploy.env
+	@export VERSION=$(VERSION); \
+	export GIT_COMMIT=$(GIT_COMMIT); \
+	MYVARS='$$VERSION:$$GIT_COMMIT'; \
+	envsubst "$$MYVARS"< $(ENVIRONMENT_VARS) >$(DIST_PATH)/deploy.env
+	@echo "Deployment envvars produced: $(DIST_PATH)/deploy.env"

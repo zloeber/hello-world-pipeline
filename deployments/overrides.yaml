@@ -1,0 +1,5 @@
+container:
+  port: {{env.Getenv "PROJECT_APP_PORT" "8000"}}
+image:
+  repository: "{{env.Getenv "PROJECT_VENDOR" "zloeber" }}/{{ env.Getenv "DOCKER_IMAGE_NAME" "hello-world-pipeline"}}"
+  tag: "{{env.Getenv "DEPLOY_TAG" "latest"}}"

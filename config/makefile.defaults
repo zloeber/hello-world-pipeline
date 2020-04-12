@@ -1,0 +1,13 @@
+## List of sane defaults for local makefile building/testing
+# Note: all values in here should be ?= in case they are already set upstream
+
+PROJECT ?= hello-world-pipeline
+CLOUD ?= local
+GIT_PROVIDER ?= github
+GIT_REPO ?= zloeber/hello-world-pipeline
+GIT_DESCRIPTION ?= A hello world pipeline example for building a kubernetes cluster and deploying a workload afterwards
+KUBE_PROVIDER ?= kind
+KUBE_CLUSTER ?= cicd
+KUBE_VERSION ?= 1.18.0
+DOCKER_PROVIDER ?= dockerhub
+PIPELINE_PROVIDER ?= githubactions

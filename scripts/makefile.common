@@ -1,0 +1,23 @@
+help: ## Help
+	@grep --no-filename -E '^[a-zA-Z_%/-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+show/env: ## Show our environment settings
+	@echo "PROJECT=$(PROJECT)"
+	@echo "CLOUD=$(CLOUD)"
+	@echo "GIT_PROVIDER=$(GIT_PROVIDER)"
+	@echo "GIT_REPO=$(GIT_REPO)"
+	@echo "GIT_COMMIT=$(GIT_COMMIT)"
+	@echo "GIT_DESCRIPTION=$(GIT_DESCRIPTION)"
+	@echo "KUBE_PROVIDER=$(KUBE_PROVIDER)"
+	@echo "KUBE_CLUSTER=$(KUBE_CLUSTER)"
+	@echo "KUBE_VERSION=$(KUBE_VERSION)"
+	@echo "DOCKER_IMAGE=$(DOCKER_IMAGE)"
+	@echo "DOCKER_PROVIDER=$(DOCKER_PROVIDER)"
+	@echo "RELEASE_VERSION: $(RELEASE_VERSION)"
+	@echo "PIPELINE_PROVIDER: $(PIPELINE_PROVIDER)"
+
+.prompt/yesno: ## Are you sure?
+	@( read -p "Are you sure?!? [y/N]: " sure && case "$$sure" in [yY]) true;; *) false;; esac )
+
+%: ## A parameter
+	@true
