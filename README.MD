@@ -218,6 +218,8 @@ make .dep/gitflow
 git flow init
 ```
 
+When this has been done, go back into the repository settings in github and set the develop branch as your default branch and you are now ready to start testing your own project.
+
 ## Extras
 
 Here are quite a few additional tasks in the Makefiles that are broken out by category in the scripts directory. Running `make` at the root directory will show all non-hidden tasks (those not prefixed by a `.`). Many of these are one off tasks I needed to do at some point and just dropped into a Makefile for future use. These may or may not be valuable to the right devops engineer as items to cut apart for their own custom pipelines so I just left them in.
@@ -240,6 +242,8 @@ make docker/list | grep -w $(make .printshort-RELEASE_VERSION)
 [Gitflow](https://nvie.com/posts/a-successful-git-branching-model/)
 
 [Gitflow Git Extension](https://github.com/nvie/gitflow)
+
+[Gitflow Animated](https://veerasundar.com/blog/2018/03/gitflow-animated/)
 
 [Semantic Versioning](https://semver.org/)
 
