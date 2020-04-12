@@ -152,8 +152,6 @@ make helm/test
 | Binary Release | Github Releases | GoReleaser | master | Git Tag | v0.0.1 |
 | Docker Image | DockerHub | Docker | develop | Git Tag+Commit Hash(short) | v0.0.0-f038f38 |
 | Docker Image | DockerHub | Docker | master | Git Tag | v0.2.0 |
-| Helm Chart Override | Pipeline Artifact | Script | develop | Git Tag+Commit Hash(short) |
-| Helm Chart Override | Pipeline Artifact | Script | master | Git Tag |
 
 > **NOTE:** The helm chart is currently not versioned. Instead the image tag is passed through to the chart for deployment. This is a common practice but ideally the chart itself would be packaged up as a whole with an updated version in the Chart.yaml manifest instead.
 
@@ -275,8 +273,6 @@ make docker/list | grep -w $(make .printshort-RELEASE_VERSION)
 
 [Zachary Loeber's Linkedin Profile](https://www.linkedin.com/in/zloeber/)
 
-# Status Badges
+# Status
 
-develop branch: ![Build](https://github.com/zloeber/hello-world-pipeline/workflows/Build/badge.svg?branch=develop)
-
-master branch: ![Build](https://github.com/zloeber/hello-world-pipeline/workflows/Build/badge.svg?branch=master)
+![Build](https://github.com/zloeber/hello-world-pipeline/workflows/Build/badge.svg?branch=develop)
