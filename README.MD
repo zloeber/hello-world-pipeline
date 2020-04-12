@@ -190,15 +190,31 @@ To start a release go back to develop branch and begin the release process.
 git checkout develop
 git branch --set-upstream-to=origin/develop develop
 git pull
-git flow release start v0.1.0
+git flow release start v0.0.1
+# Make some small changes, ideally you would bump any version files that may be required. We use tags for versions so we will not do this.
+# I keep a .version file in the root repo and update it here just to have something to commit and push
+git add --all . && git commit -m 'release: v0.0.1'
+git push origin release/v0.0.1
 
-## Make some small changes, ideally you would bump any version files that may be required. We use tags for versions so we will not do this.
-git add --all . && git commit -m 'release: v0.1.0'
-git push origin release/v0.1.0
-git flow release finish 'v0.1.0'
+# Either manually create the pr against master or use the following for this release
+./.local/bin/gh pr create -B master -f
 ```
+Review and approve the PR to master and merge it within Github. When this is completed, the release/v0.0.1 branch will have been merged into master. This will kick off the GitFlow workflow to auto-PR and merge master into the develop branch. This will kick off the production deployment pipeline for this release.
 
-When this is completed the release/v0.1.0 branch will have been merged into master and a new tag been generated. This will kick off the production deployment pipeline for this release.
+### Cut a Release
+
+To kick off the final release you will need to bump up the git tag on master. To do this, you can go to Github and select the `release` tab in the project repo. In here, select to publish a new release and choose the master branch. Use the new release version tag, in this example it would be `v0.0.1` and ad some notes on your awesome release. When completed 2 workflows will kick off;
+
+1. Gitflow auto-merge from master to develop
+2. Release of binaries, docker images, and production cluster deployment using the new tag
+
+When these have completed you should pull all updated and start the process again from the beginning
+
+```bash
+git checkout develop
+git branch --set-upstream-to=origin/develop develop
+git pull
+```
 
 ## Initializing A New Project
 
@@ -261,6 +277,6 @@ make docker/list | grep -w $(make .printshort-RELEASE_VERSION)
 
 # Status Badges
 
-develop branch: ![Build](https://github.com/zloeber/hello-world-pipeline/workflows/Build/badge.svg?branch=develop&event=status)
+develop branch: ![Build](https://github.com/zloeber/hello-world-pipeline/workflows/Build/badge.svg?branch=develop)
 
-master branch: ![Build](https://github.com/zloeber/hello-world-pipeline/workflows/Build/badge.svg?branch=master&event=status)
+master branch: ![Build](https://github.com/zloeber/hello-world-pipeline/workflows/Build/badge.svg?branch=master)
