@@ -22,3 +22,4 @@ github/bootstrap: github/deps ## Create github repo if it doesn't exist
         --description "$(GIT_DESCRIPTION)" || true
 	git remote rm origin || true
 	git remote add origin git@$(GIT_SITE):$(GIT_REPO).git
+	git push origin master || true

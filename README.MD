@@ -52,16 +52,6 @@ make docker/login docker/push
 
 > **NOTE** There are additional tasks for pushing the image and more.
 
-## The Artifacts
-
-This pipeline produces the following artifacts;
-
-| Artfact | Artifact Location | Created With | Branch | Version |
-|---|---|---|---|
-| Binary Release | Github Releases | GoReleaser | master | GitReleaseTag |
-| Docker Image | DockerHub | Docker | master or develop | Git Tag+Commit Hash(short) |
-| Helm Chart Override | Pipeline Artifact | Script | master or develop | Git Release Tag+Commit Hash(short) |
-
 ## The App
 
 The app is a simple Go app that runs the [gin framework](https://gin-gonic.com/) to serve up a template file in web/template on port 8000. 
@@ -102,6 +92,13 @@ In our case we will use the following environments and triggers for releases int
 | N/A | Build | develop, release/, hotfix/, feature/ | Any update to branches with this name |
 | dev | Build/Deploy | develop | Any updates to the develop branch |
 | prod | Deploy | master | Any new tags to the master branch |
+
+Additionally, there are manual tasks required in a typical gitflow model that are done automatically in a separate Github Workflow. This workflow will do the following;
+
+- Automatically creates and merges pull requests from master to develop branches
+- Automatically creates and merges pull requests from release to master.
+
+Because of this we will use additional pipeline logic to prevent build/deploy processes from running when a merge to develop from master occurs.
 
 ## Branches
 
@@ -148,13 +145,23 @@ make helm/test
 
 ## Versioning
 
-[Semantic Versioning](https://semver.org/) are being used per best practice. As it aligns with Go module release versioning we will use the git tag as the version for deployment.
+[Semantic Versioning](https://semver.org/) are being used per best practice. As it aligns with Go module release versioning we will use the git tag as the version for deployment. The pipelines for this project produces the following artifacts with versions.
+
+| Artfact | Artifact Location | Created With | Branch(s) | Version | Example |
+|---|---|---|---|---|---|
+| Binary Release | Github Releases | GoReleaser | master | Git Tag | v0.0.1 |
+| Docker Image | DockerHub | Docker | develop | Git Tag+Commit Hash(short) | v0.0.0-f038f38 |
+| Docker Image | DockerHub | Docker | master | Git Tag | v0.2.0 |
+| Helm Chart Override | Pipeline Artifact | Script | develop | Git Tag+Commit Hash(short) |
+| Helm Chart Override | Pipeline Artifact | Script | master | Git Tag |
+
+> **NOTE:** The helm chart is currently not versioned. Instead the image tag is passed through to the chart for deployment. This is a common practice but ideally the chart itself would be packaged up as a whole with an updated version in the Chart.yaml manifest instead.
 
 ## Dev Workflow
 
 Using the gitflow git extension (in some areas) we will demonstrate a full workflow from feature to release.
 
-### Add a feature
+### Add a Feature
 
 ```bash
 ## Start a feature from develop (the default branch)
@@ -164,19 +171,15 @@ git push origin feature/initial-release
 ```
 This will lead to a workflow that runs the CI process only. No docker image will be published.
 
-Workflow Output: [link]()
+### Complete a Feature
 
-### Complete a feature
-
-In the github console create a pull request for the feature manually or used the included `gh` CLI tool to do the same:
+Initialize a pull request into develop for the feature branch. In the github console create a pull request for the feature manually or used the included `gh` CLI tool to do the same:
 
 ```bash
 ./.local/bin/gh pr create -B develop -f
 ```
 
-In the github console approve and merge the request. This will kick off the CI process, create a new tagged image, and run through the (fake) deployment process into a kubernetes cluster then test the deployment with the built in helm chart tests.
-
-Workflow Output: [link]()
+In the github console, approve and merge the request and delete the feature/ branch as gitflow dictates. This will kick off the CI process, create a new tagged image, and run through the (fake) deployment process into a kubernetes cluster then test the deployment with the built in helm chart tests.
 
 ### Start a Release
 
@@ -189,11 +192,10 @@ git branch --set-upstream-to=origin/develop develop
 git pull
 git flow release start v0.1.0
 
-git add --all . && git commit -m 'release: v0.1.0' 
-git push origin release/v0.1.0 --tags 
-
-## The following command does not appear to work as gitflow was designed, this should be done manually.
-#git flow release finish 'v0.1.0'
+## Make some small changes, ideally you would bump any version files that may be required. We use tags for versions so we will not do this.
+git add --all . && git commit -m 'release: v0.1.0'
+git push origin release/v0.1.0
+git flow release finish 'v0.1.0'
 ```
 
 When this is completed the release/v0.1.0 branch will have been merged into master and a new tag been generated. This will kick off the production deployment pipeline for this release.
