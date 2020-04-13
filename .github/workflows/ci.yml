@@ -32,6 +32,9 @@ jobs:
     - name: Checkout Repo
       uses: actions/checkout@v2
 
+    - name: Unshallow Repo
+      run: git fetch --prune --unshallow
+
     - name: Dependencies
       run: |
         export DEBIAN_FRONTEND=noninteractive
