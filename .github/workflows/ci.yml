@@ -81,6 +81,7 @@ jobs:
           echo ::set-output name=DEPLOYENV::develop
           DEPLOYENV=develop
         fi;
+        make show/build/info ENVIRONMENT=$DEPLOYENV
         echo ::set-output name=$(make .print-DOCKER_BUILD_ARGS ENVIRONMENT=$DEPLOYENV)
         echo ::set-output name=$(make .print-DOCKER_IMAGE ENVIRONMENT=$DEPLOYENV)
         echo ::set-output name=$(make .print-GIT_COMMIT ENVIRONMENT=$DEPLOYENV)
