@@ -86,6 +86,7 @@ jobs:
         echo ::set-output name=$(make .print-DOCKER_IMAGE ENVIRONMENT=$DEPLOYENV)
         echo ::set-output name=$(make .print-GIT_COMMIT ENVIRONMENT=$DEPLOYENV)
         echo ::set-output name=$(make .print-VERSION ENVIRONMENT=$DEPLOYENV)
+        echo ::set-output name=$(make .print-RELEASE_VERSION ENVIRONMENT=$DEPLOYENV)
         echo ::set-output name=$(make .print-GIT_DIRTY ENVIRONMENT=$DEPLOYENV)
       shell: bash
       env:
@@ -133,7 +134,7 @@ jobs:
         tag_with_ref: false
         tag_with_sha: false
         repository: ${{ secrets.DOCKER_IMAGE }}
-        tags: ${{ steps.vars.outputs.VERSION }}-${{ steps.vars.outputs.GIT_COMMIT }}
+        tags: ${{ steps.vars.outputs.RELEASE_VERSION }}
 
   deploy:
     name: Deploy To Development
