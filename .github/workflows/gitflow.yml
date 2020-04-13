@@ -1,9 +1,15 @@
 # https://github.com/marketplace/actions/gitflow-action
-# Auto-merge master into develop and release into master via PRs.
+# Auto-merge master into develop if:
+# - a pull request gets closed but only after any other workflows are completed
 name: Gitflow
-on: 
+on:
   push:
-  pull_request_review:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+    types: [closed]
   check_run:
     types: [completed]
     
