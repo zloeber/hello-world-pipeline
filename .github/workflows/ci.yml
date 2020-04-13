@@ -15,7 +15,6 @@ on:
 jobs:
   build:
     name: Build
-    if: ${{ github.head_ref != 'refs/heads/master' }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -100,11 +99,10 @@ jobs:
 
     - name: Helm - Render Artifacts
       run: |
-        make helm/render/overrides .render/envvars ENVIRONMENT=$DEPLOYENV DEPLOY_TAG=$DEPLOY_TAG
+        make helm/render/overrides .render/envvars ENVIRONMENT=$DEPLOYENV
       shell: bash
       env:
         DEPLOYENV: ${{ steps.vars.outputs.DEPLOYENV }}
-        DEPLOY_TAG: v${{ steps.vars.outputs.VERSION }}-${{ steps.vars.outputs.GIT_COMMIT }}
 
     - name: Publish - Helm Chart
       uses: actions/upload-artifact@v1
@@ -125,7 +123,7 @@ jobs:
         path: dist/deploy.env
 
     - name: Publish - Docker Image
-      if: ${{ (steps.vars.outputs.GIT_DIRTY == '') && (github.ref == 'refs/heads/develop') }}
+      if: ${{ github.ref == 'refs/heads/develop' }}
       uses: docker/build-push-action@v1
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
