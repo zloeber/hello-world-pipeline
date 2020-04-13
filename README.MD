@@ -214,6 +214,14 @@ git branch --set-upstream-to=origin/develop develop
 git pull
 ```
 
+### Finish a Release
+
+Release branches, by gitflow design, should be short lived and should be removed after any hotfixes or other last minute updates are completed.
+
+```bash
+git flow release finish 'v0.0.1'
+```
+
 ## Initializing A New Project
 
 If you wish to clone this into your own project for testing purposes follow these directions to get started after cloning this repo. All git commands are assumed to be using ssh key based authentication. Before moving forward you will need to update the config/* files to be correct for your github account and create the dockerhub target container registry. 
