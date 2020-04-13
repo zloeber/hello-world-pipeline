@@ -12,7 +12,8 @@ jobs:
     name: Gitflow Auto-merge
     runs-on: ubuntu-latest
     steps:
-    - uses: Logerfo/gitflow-action@0.0.4
+    - name: automerge
+      uses: Logerfo/gitflow-action@0.0.4
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         release: release # The `release` branch.

@@ -91,7 +91,7 @@ jobs:
       shell: bash
       env:
         DEPLOYENV: ${{ steps.vars.outputs.DEPLOYENV }}
-        DEPLOY_TAG: v${{ steps.vars.outputs.VERSION }}-${{ steps.vars.outputs.GIT_COMMIT }}
+        DEPLOY_TAG: ${{ steps.vars.outputs.VERSION }}-${{ steps.vars.outputs.GIT_COMMIT }}
 
     - name: Publish - Helm Chart
       uses: actions/upload-artifact@v1
